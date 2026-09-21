@@ -38,10 +38,10 @@ for fast re-use.
 
 ```bash
 # Default: bootstrap, ship snapshot, terminate
-./bootstrap-snapshot/run.sh
+./scripts/bootstrap-snapshot/run.sh
 
 # Debug: leave the EC2 alive after (SSH yourself in to poke around)
-./bootstrap-snapshot/run.sh --keep-instance
+./scripts/bootstrap-snapshot/run.sh --keep-instance
 
 # Override defaults via env:
 INSTANCE_TYPE=c6id.4xlarge REGION=ap-northeast-1 ./run.sh

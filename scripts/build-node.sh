@@ -1,13 +1,10 @@
 #!/usr/bin/env bash
-# build-hyperdata-node.sh — bring up the HL node container(s) in the
+# build-node.sh — bring up the HL node container(s) in the
 # background and tail logs into log/ under the repo root.
 #
 # Usage:
-#   ./build-hyperdata-node.sh live
+#   ./scripts/build-node.sh live
 #       Long-running non-validator + pruner. Tails until killed.
-#
-#   ./build-hyperdata-node.sh replay <YYYY-MM-DD> <TARGET_HEIGHT>
-#       One-shot historical replay. Tails until the container exits.
 #
 # What it does:
 #   1. Preflight — ensure host paths exist with hluser (UID 1000)
@@ -15,15 +12,21 @@
 #      something actually needs creating/chowning.
 #   2. Kill any lingering host-side `docker compose logs -f` from a
 #      previous invocation (they don't EOF when the container stops).
-#   3. `docker compose up --build -d` the right service(s) for the mode.
+#   3. `docker compose up --build -d` the live services.
 #   4. `docker compose logs -f` in a backgrounded subshell, output
 #      redirected to log/hyperdata-node-<mode>-<UTC>.log with a
 #      hyperdata-node-<mode>.log symlink pointing at the latest.
 #   5. Print pid + log path; exit.
+#
+# Replay note: historical replay is NOT run through the node — HL cannot
+# replay past replica_cmds. Replay is the platform ingestion layer's
+# replay tap (file copy into the watched tree); see the ingestion README
+# in the parent monorepo. Snapshot capture lives in
+# scripts/bootstrap-snapshot/.
 set -euo pipefail
-cd "$(dirname "$0")/../.."
+cd "$(dirname "$0")/.."
 
-MODE="${1:?usage: ./build-hyperdata-node.sh live | replay <DATE> <HEIGHT>}"
+MODE="${1:?usage: ./scripts/build-node.sh live}"
 shift
 
 # ─── 1. preflight ────────────────────────────────────────────────────
@@ -46,8 +49,6 @@ preflight() {
         fi
     done
 
-    [[ "$MODE" != "live" ]] && return
-
     local tmpfs="/mnt/hl_node_fills"
     [[ -d "$tmpfs" ]] || sudo mkdir -p "$tmpfs"
     if ! findmnt -n "$tmpfs" >/dev/null 2>&1; then
@@ -59,20 +60,15 @@ preflight() {
 preflight
 
 # ─── 2. clean up lingering host-side compose processes ──────────────
-pkill -f 'docker compose .*build-hyperdata-node' 2>/dev/null || true
+pkill -f 'docker compose .*docker-compose.yml' 2>/dev/null || true
 
-# ─── 3. mode → services + per-mode env ──────────────────────────────
+# ─── 3. mode → services ─────────────────────────────────────────────
 case "$MODE" in
     live)
         SERVICES=(hyperdata-node-live hyperdata-node-pruner)
         ;;
-    replay)
-        SERVICES=(hyperdata-node-replay)
-        export TARGET_DATE="${1:?TARGET_DATE required (YYYY-MM-DD)}"
-        export TARGET_HEIGHT="${2:?TARGET_HEIGHT required (block height)}"
-        ;;
     *)
-        echo "unknown mode: $MODE" >&2
+        echo "unknown mode: $MODE (only 'live'; replay is the ingestion-layer tap)" >&2
         exit 2
         ;;
 esac
