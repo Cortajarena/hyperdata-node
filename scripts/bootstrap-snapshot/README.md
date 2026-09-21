@@ -94,7 +94,7 @@ sudo chown -R 1000:1000 ${DATA_DIR}/hl-node-data/hyperliquid_data
 ```bash
 # Restart the local node — it'll skip abci_stream and catch up via block gossip
 docker compose --env-file .env \
-    -f docker-compose.yml \
+    -f compose.yaml \
     restart hyperdata-node-live
 
 # Watch for the first applied block (means catch-up is working)

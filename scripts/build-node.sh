@@ -60,7 +60,7 @@ preflight() {
 preflight
 
 # ─── 2. clean up lingering host-side compose processes ──────────────
-pkill -f 'docker compose .*docker-compose.yml' 2>/dev/null || true
+pkill -f 'docker compose .*compose.yaml' 2>/dev/null || true
 
 # ─── 3. mode → services ─────────────────────────────────────────────
 case "$MODE" in
@@ -78,7 +78,7 @@ mkdir -p log
 LOG="log/hyperdata-node-${MODE}-$(date -u +%Y%m%dT%H%M%SZ).log"
 ln -sfn "$(basename "$LOG")" "log/hyperdata-node-${MODE}.log"
 
-COMPOSE=(docker compose --env-file .env -f docker-compose.yml)
+COMPOSE=(docker compose --env-file .env -f compose.yaml)
 
 # ─── 5. bring up + tail in background ───────────────────────────────
 (
